@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Work Shift Calendar</title>
+  <style>
+    :root {
+      --bg: #f7f6f2;
+      --surface: #ffffff;
+      --surface-muted: #f0efea;
+      --text: #12343b;
+      --text-muted: #647079;
+      --primary: #005eb8; /* Tenet blue */
+      --primary-hover: #004a90;
+      --border: rgba(18, 52, 59, 0.18);
+      --danger: #b3261e;
+      --day-color: #f6c453;   /* warm yellow */
+      --night-color: #8b5fbf; /* muted purple */
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 6px 18px rgba(0,0,0,0.08);
+      --space-4: 4px;
+      --space-8: 8px;
+      --space-12: 12px;
+      --space-16: 16px;
+      --space-20: 20px;
+      --space-24: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #ffffff, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+      padding: var(--space-24);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .app {
+      max-width: 960px;
+      width: 100%;
+      background: rgba(255,255,255,0.9);
+      border-radius: 14px;
+      box-shadow: var(--shadow-md);
+      padding: var(--space-24);
+      border: 1px solid rgba(255,255,255,0.8);
+      backdrop-filter: blur(10px);
+    }
+
+    header {
+      margin-bottom: var(--space-20);
+    }
+
+    h1 {
+      font-size: 1.7rem;
+      font-weight: 650;
+      margin-bottom: var(--space-8);
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .subtitle span {
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.4fr);
+      gap: var(--space-24);
+    }
+
+    @media (max-width: 800px) {
+      body { padding: var(--space-16); }
+      .app { padding: var(--space-16); }
+      .layout { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    /* Shift type selector */
+    .shift-type {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-8);
+      padding: 6px;
+      border-radius: 999px;
+      background: var(--surface-muted);
+      margin-top: var(--space-8);
+      margin-bottom: var(--space-8);
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+    }
+
+    .chip-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+    }
+
+    .chip-day .chip-dot { background: var(--day-color); }
+    .chip-night .chip-dot { background: var(--night-color); }
+
+    .chip.active {
+      color: var(--text);
+      background: #ffffff;
+      border-color: var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      transform: translateY(-0.5px);
+    }
+
+    .chip-label {
+      font-weight: 550;
+    }
+
+    .chip-sub {
+      font-size: 0.78rem;
+      opacity: 0.85;
+    }
+
+    /* Calendar */
+    .calendar-card {
+      background: var(--surface);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: var(--space-16);
+      border: 1px solid var(--border);
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-12);
+      gap: var(--space-12);
+      flex-wrap: wrap;
+    }
+
+    .month-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-8);
+    }
+
+    .month-label {
+      font-weight: 600;
+      min-width: 170px;
+      text-align: center;
+    }
+
+    .btn {
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      background: #ffffff;
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease, box-shadow 0.08s ease;
+    }
+
+    .btn:hover {
+      background: var(--surface-muted);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+      box-shadow: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: rgba(0,0,0,0.05);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.55;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .weekday-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: var(--space-4);
+      margin-bottom: var(--space-8);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .weekday {
+      text-align: center;
+      padding: var(--space-4) 0;
+      font-weight: 600;
+    }
+
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: var(--space-4);
+    }
+
+    .day-cell {
+      aspect-ratio: 1;
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease, box-shadow 0.08s ease;
+    }
+
+    .day-cell:hover:not(.other-month) {
+      border-color: var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .day-cell.other-month {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .day-number {
+      position: relative;
+      z-index: 2;
+    }
+
+    .today-ring::before {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border-radius: inherit;
+      border: 1px dashed rgba(0,94,184,0.6);
+      z-index: 1;
+    }
+
+    .pill {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      opacity: 0.58;
+      z-index: 0;
+    }
+
+    .pill-day { background: var(--day-color); }
+    .pill-night { background: var(--night-color); }
+
+    .pill-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      position: absolute;
+      inset: 2px;
+      padding: 2px;
+      z-index: 0;
+    }
+
+    .pill-stack > div {
+      flex: 1;
+      border-radius: 999px;
+      opacity: 0.75;
+    }
+
+    /* Right column */
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-16);
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: var(--space-16);
+      border: 1px solid var(--border);
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      margin-bottom: var(--space-8);
+    }
+
+    .muted {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .selected-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-8);
+      margin-top: var(--space-12);
+      min-height: 40px;
+    }
+
+    .chip-selected {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      background: var(--surface-muted);
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .chip-selected .dot-day { background: var(--day-color); }
+    .chip-selected .dot-night { background: var(--night-color); }
+
+    .chip-selected .dot-day,
+    .chip-selected .dot-night {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+    }
+
+    .remove-btn {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0 2px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .remove-btn:hover {
+      color: var(--danger);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-8);
+      margin-top: var(--space-12);
+    }
+
+    .footer-note {
+      margin-top: var(--space-8);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .footer-note code {
+      font-size: 0.78rem;
+      background: var(--surface-muted);
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Work Shift Calendar</h1>
+      <p class="subtitle">
+        Tap days on the calendar to add <span>Work</span> shifts at DMC Detroit Receiving Hospital.
+      </p>
+      <div class="shift-type" aria-label="Shift type selector">
+        <button type="button" class="chip chip-day active" data-shift="day">
+          <span class="chip-dot"></span>
+          <span class="chip-label">Day</span>
+          <span class="chip-sub">07:00–19:30</span>
+        </button>
+        <button type="button" class="chip chip-night" data-shift="night">
+          <span class="chip-dot"></span>
+          <span class="chip-label">Night</span>
+          <span class="chip-sub">19:00–07:30</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <section class="calendar-card" aria-label="Calendar">
+        <div class="calendar-header">
+          <div class="month-nav">
+            <button type="button" class="btn" id="prevMonth">‹ Prev</button>
+            <div class="month-label" id="monthLabel"></div>
+            <button type="button" class="btn" id="nextMonth">Next ›</button>
+          </div>
+          <button type="button" class="btn" id="todayBtn">Today</button>
+        </div>
+        <div class="weekday-row">
+          <div class="weekday">Sun</div>
+          <div class="weekday">Mon</div>
+          <div class="weekday">Tue</div>
+          <div class="weekday">Wed</div>
+          <div class="weekday">Thu</div>
+          <div class="weekday">Fri</div>
+          <div class="weekday">Sat</div>
+        </div>
+        <div class="days-grid" id="daysGrid"></div>
+      </section>
+
+      <aside class="side-panel">
+        <div class="card">
+          <h2>Selected shifts (<span id="shiftCount">0</span>)</h2>
+          <p class="muted">Each entry becomes a <strong>Work</strong> event on export.</p>
+          <div class="selected-list" id="selectedList"></div>
+          <div class="actions">
+            <button type="button" class="btn btn-primary" id="exportBtn" disabled>
+              Export to iCal (.ics)
+            </button>
+            <button type="button" class="btn" id="clearBtn">Clear all</button>
+          </div>
+          <p class="footer-note">
+            Import the downloaded file into Calendar, then assign it to your <code>Werk</code> iCloud calendar.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const daysGrid = document.getElementById('daysGrid');
+    const monthLabel = document.getElementById('monthLabel');
+    const prevMonthBtn = document.getElementById('prevMonth');
+    const nextMonthBtn = document.getElementById('nextMonth');
+    const todayBtn = document.getElementById('todayBtn');
+    const selectedListEl = document.getElementById('selectedList');
+    const shiftCountEl = document.getElementById('shiftCount');
+    const exportBtn = document.getElementById('exportBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    const shiftTypeChips = document.querySelectorAll('.shift-type .chip');
+
+    let viewDate = new Date();
+    viewDate.setDate(1);
+
+    // selectedShifts: Map keyed by `${dateKey}|${shiftType}` => { dateKey, shiftType }
+    const selectedShifts = new Map();
+    let currentShiftType = 'day';
+
+    shiftTypeChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        shiftTypeChips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentShiftType = chip.dataset.shift;
+      });
+    });
+
+    function formatDateKey(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function renderCalendar() {
+      const year = viewDate.getFullYear();
+      const month = viewDate.getMonth();
+
+      const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      monthLabel.textContent = `${monthNames[month]} ${year}`;
+
+      daysGrid.innerHTML = '';
+
+      const firstDayOfMonth = new Date(year, month, 1);
+      const startWeekday = firstDayOfMonth.getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+      const today = new Date();
+      today.setHours(0,0,0,0);
+
+      // previous month padding
+      for (let i = startWeekday - 1; i >= 0; i--) {
+        const dayNum = daysInPrevMonth - i;
+        const cell = document.createElement('div');
+        cell.className = 'day-cell other-month';
+        cell.innerHTML = `<span class="day-number">${dayNum}</span>`;
+        daysGrid.appendChild(cell);
+      }
+
+      // current month days
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(year, month, d);
+        const dateKey = formatDateKey(date);
+        const isToday = date.getTime() === today.getTime();
+
+        const hasDay = selectedShifts.has(`${dateKey}|day`);
+        const hasNight = selectedShifts.has(`${dateKey}|night`);
+
+        const cell = document.createElement('div');
+        cell.className = 'day-cell';
+        if (isToday) cell.classList.add('today-ring');
+
+        const numberSpan = document.createElement('span');
+        numberSpan.className = 'day-number';
+        numberSpan.textContent = d;
+        cell.appendChild(numberSpan);
+
+        if (hasDay && hasNight) {
+          const stack = document.createElement('div');
+          stack.className = 'pill-stack';
+          const dayPill = document.createElement('div');
+          dayPill.className = 'pill-day';
+          const nightPill = document.createElement('div');
+          nightPill.className = 'pill-night';
+          stack.appendChild(dayPill);
+          stack.appendChild(nightPill);
+          cell.appendChild(stack);
+        } else if (hasDay || hasNight) {
+          const pill = document.createElement('div');
+          pill.className = 'pill ' + (hasDay ? 'pill-day' : 'pill-night');
+          cell.appendChild(pill);
+        }
+
+        cell.addEventListener('click', () => toggleShift(dateKey));
+        daysGrid.appendChild(cell);
+      }
+
+      // next month padding to complete 6 rows
+      const totalCells = daysGrid.children.length;
+      const remaining = 42 - totalCells;
+      for (let d = 1; d <= remaining; d++) {
+        const cell = document.createElement('div');
+        cell.className = 'day-cell other-month';
+        cell.innerHTML = `<span class="day-number">${d}</span>`;
+        daysGrid.appendChild(cell);
+      }
+    }
+
+    function toggleShift(dateKey) {
+      const key = `${dateKey}|${currentShiftType}`;
+      if (selectedShifts.has(key)) {
+        selectedShifts.delete(key);
+      } else {
+        selectedShifts.set(key, { dateKey, shiftType: currentShiftType });
+      }
+      renderCalendar();
+      renderSelectedList();
+    }
+
+    function renderSelectedList() {
+      const entries = Array.from(selectedShifts.values())
+        .sort((a, b) => a.dateKey.localeCompare(b.dateKey) || a.shiftType.localeCompare(b.shiftType));
+
+      shiftCountEl.textContent = entries.length;
+      exportBtn.disabled = entries.length === 0;
+
+      if (entries.length === 0) {
+        selectedListEl.innerHTML = '<p class="muted">No shifts yet. Choose Day or Night, then tap days on the calendar.</p>';
+        return;
+      }
+
+      selectedListEl.innerHTML = '';
+      for (const entry of entries) {
+        const [y, m, d] = entry.dateKey.split('-').map(Number);
+        const date = new Date(y, m - 1, d);
+        const weekdayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        const monthShort = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const label = `${weekdayNames[date.getDay()]} ${monthShort[date.getMonth()]} ${String(d).padStart(2,'0')} • ${entry.shiftType === 'day' ? 'Day 07:00–19:30' : 'Night 19:00–07:30'}`;
+
+        const chip = document.createElement('div');
+        chip.className = 'chip-selected';
+
+        const dot = document.createElement('div');
+        dot.className = entry.shiftType === 'day' ? 'dot-day' : 'dot-night';
+
+        const text = document.createElement('span');
+        text.textContent = label;
+
+        const remove = document.createElement('button');
+        remove.className = 'remove-btn';
+        remove.innerHTML = '&times;';
+        remove.title = 'Remove shift';
+        remove.addEventListener('click', () => {
+          selectedShifts.delete(`${entry.dateKey}|${entry.shiftType}`);
+          renderCalendar();
+          renderSelectedList();
+        });
+
+        chip.appendChild(dot);
+        chip.appendChild(text);
+        chip.appendChild(remove);
+        selectedListEl.appendChild(chip);
+      }
+    }
+
+    function changeMonth(delta) {
+      const m = viewDate.getMonth() + delta;
+      viewDate.setMonth(m);
+      renderCalendar();
+    }
+
+    function goToToday() {
+      const now = new Date();
+      viewDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      renderCalendar();
+    }
+
+    function exportToICS() {
+      const entries = Array.from(selectedShifts.values())
+        .sort((a, b) => a.dateKey.localeCompare(b.dateKey) || a.shiftType.localeCompare(b.shiftType));
+      if (entries.length === 0) return;
+
+      const lines = [];
+      lines.push('BEGIN:VCALENDAR');
+      lines.push('VERSION:2.0');
+      lines.push('PRODID:-//Work Shift Calendar//EN');
+      lines.push('CALSCALE:GREGORIAN');
+      lines.push('METHOD:PUBLISH');
+      lines.push('X-WR-CALNAME:Work');
+      lines.push('X-WR-TIMEZONE:America/Detroit');
+
+      const now = new Date();
+      const dtStamp = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+      for (const entry of entries) {
+        const [y, m, d] = entry.dateKey.split('-').map(Number);
+        const startDate = new Date(Date.UTC(y, m - 1, d));
+        let startStr, endStr;
+
+        if (entry.shiftType === 'day') {
+          // 07:00 to 19:30 same day, local America/Detroit
+          const ymd = `${y}${String(m).padStart(2,'0')}${String(d).padStart(2,'0')}`;
+          startStr = ymd + 'T070000';
+          endStr   = ymd + 'T193000';
+        } else {
+          // Night: 19:00 same day to 07:30 next day
+          const ymdStart = `${y}${String(m).padStart(2,'0')}${String(d).padStart(2,'0')}`;
+          const next = new Date(y, m - 1, d + 1);
+          const yEnd = next.getFullYear();
+          const mEnd = next.getMonth() + 1;
+          const dEnd = next.getDate();
+          const ymdEnd = `${yEnd}${String(mEnd).padStart(2,'0')}${String(dEnd).padStart(2,'0')}`;
+          startStr = ymdStart + 'T190000';
+          endStr   = ymdEnd + 'T073000';
+        }
+
+        const uid = `work-${entry.shiftType}-${entry.dateKey}@workshifts.local`;
+        const summary = entry.shiftType === 'day' ? 'Work – Day' : 'Work – Night';
+
+        lines.push('BEGIN:VEVENT');
+        lines.push(`UID:${uid}`);
+        lines.push(`DTSTAMP:${dtStamp}`);
+        lines.push(`DTSTART;TZID=America/Detroit:${startStr}`);
+        lines.push(`DTEND;TZID=America/Detroit:${endStr}`);
+        lines.push('SUMMARY:' + summary);
+        lines.push('LOCATION:DMC Detroit Receiving Hospital 4201 St. Antoine Boulevard\\nDetroit MI 48201\\nUnited States');
+        lines.push('DESCRIPTION:Shift at DMC Detroit Receiving Hospital');
+        lines.push('STATUS:CONFIRMED');
+        lines.push('TRANSP:OPAQUE');
+        lines.push('END:VEVENT');
+      }
+
+      lines.push('END:VCALENDAR');
+
+      const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().split('T')[0];
+      a.href = url;
+      a.download = `work-shifts-${stamp}.ics`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    prevMonthBtn.addEventListener('click', () => changeMonth(-1));
+    nextMonthBtn.addEventListener('click', () => changeMonth(1));
+    todayBtn.addEventListener('click', goToToday);
+    clearBtn.addEventListener('click', () => {
+      if (selectedShifts.size === 0) return;
+      if (!confirm('Clear all selected shifts?')) return;
+      selectedShifts.clear();
+      renderCalendar();
+      renderSelectedList();
+    });
+    exportBtn.addEventListener('click', exportToICS);
+
+    // Initial render
+    renderCalendar();
+    renderSelectedList();
+  </script>
+</body>
+</html>
